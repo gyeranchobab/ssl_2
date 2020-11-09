@@ -148,167 +148,15 @@ class CWRUDataset(Dataset):
         noise = np.random.normal(0, np.sqrt(npower),x.shape)
         noise_data = x+noise
         return noise_data
-        
-class HeteroDataset(Dataset):
-    def __init__(self, N, noise=None, ratio=1.0, n_label=None,seed=0,n_cluster=1):
-        self.X, self.y, self.M = hetero_dataset(N,noise,ratio,n_label, seed,n_cluster)
-    def __len__(self):
-        return self.X.shape[0]
-    def __getitem__(self, index):
-        return self.X[index],self.y[index],self.M[index]
+
 class TwoMoonDataset(Dataset):
     def __init__(self, N, noise=None, ratio=1.0, n_label=None,seed=0):
-        #self.X, self.y, self.M = twomoon_dataset(N,noise,ratio,n_label, seed)
         self.X, self.y, self.M = twomoon(N,noise,ratio,n_label, seed)
     def __len__(self):
         return self.X.shape[0]
     def __getitem__(self, index):
         return self.X[index],self.y[index],self.M[index]
         
-def hetero_dataset(N, noise=None, ratio=1.0, n_label=None,seed=0,n_cluster=1): 
-    np.random.seed(seed)
-    n1 = int(N/(ratio+1))
-    n2 = N-n1
-    
-    n1c=0
-    n2c=0
-    
-    Xs=[]
-    ys=[]
-    for i in range(n_cluster):
-        if i == n_cluster-1:
-            n11 = n1-n1c
-            n21 = n2-n2c
-        else:
-            n11 = n1//n_cluster
-            n21 = n2//n_cluster
-        d1 = np.random.rand(n11) *np.pi/(3*n_cluster-1)  + (3*i) / (3*n_cluster-1)*np.pi
-        x1 = np.cos(d1)
-        y1 = np.sin(d1)
-        if noise is not None:
-            scale = noise[0] if type(noise) is tuple else noise
-            
-            x1 += np.random.normal(scale=scale, size=n11)
-            y1 += np.random.normal(scale=scale, size=n11)
-        
-        d2 = np.random.rand(n21) *np.pi/(3*n_cluster-1)+ (3*i) / (3*n_cluster-1)*np.pi
-        x2 = 1-np.cos(d2)
-        y2 = 1-np.sin(d2)-0.5
-        if noise is not None:
-            scale = noise[1] if type(noise) is tuple else noise
-            
-            x2 += np.random.normal(scale=scale, size=n21)
-            y2 += np.random.normal(scale=scale, size=n21)
-        
-        n1c+=n11
-        n2c+=n21
-    
-        
-        X = np.vstack([np.append(x1, x2), np.append(y1, y2)]).T.astype(np.float32)
-        Xs.append(X)
-    
-        l1=np.zeros(n11,dtype=np.intp)
-        l2=np.ones(n21,dtype=np.intp)
-        
-        y = np.hstack([l1, l2]).astype(np.int32)
-        ys.append(y)
-        
-    if n_label is not None:
-        if type(n_label) is tuple:
-            n_lab1 = n_label[0]
-            n_lab2 = n_label[1]
-        elif type(n_label) in [int,float]:
-            if n_label <1:
-                n_lab1 = int(n1*n_label)
-                n_lab2 = int(n2*n_label)
-            else:
-                n_lab1 = n_label
-                n_lab2 = n_label
-        else:
-            raise('not expected')
-    else:
-        n_lab1 = n1
-        n_lab2 = n2
-          
-                
-    X = np.concatenate(Xs, axis=0)
-    y = np.concatenate(ys, axis=0)
-    m = np.array([False]*y.shape[0])
-    m1 = np.array([False]*((y==0).sum()))#np.zeros((y==0).sum())-1
-    
-    m1[:n_lab1]=True
-    np.random.shuffle(m1)
-    #y[y==0]=m1
-    
-    m2 = np.array([False]*((y==1).sum()))#np.zeros((y==1).sum())-1
-    m2[:n_lab2]=True
-    np.random.shuffle(m2)
-    #print(m1.shape, m1.sum())
-    m[y==0]=m1
-    m[y==1]=m2
-    #m = np.concatenate([m1,m2])
-    #print(y.shape,m.shape)
-    
-    return X,y,m
-
-    
-    
-def twomoon_dataset(N, noise=None, ratio=1.0, n_label=None,seed=0):
-    np.random.seed(seed)
-    n1 = int(N/(ratio+1))
-    n2 = N-n1
-    
-    #x1 = np.cos(np.linspace(0,np.pi, n1))
-    #y1 = np.sin(np.linspace(0,np.pi, n1))
-    d1 = np.random.rand(n1)*np.pi
-    x1 = np.cos(d1)
-    y1 = np.sin(d1)
-    
-    if noise is not None:
-        scale = noise[0] if type(noise) is tuple else noise
-        
-        x1 += np.random.normal(scale=scale, size=n1)
-        y1 += np.random.normal(scale=scale, size=n1)
-        
-    
-    #x2 = 1-np.cos(np.linspace(0,np.pi, n2))
-    #y2 = 1-np.sin(np.linspace(0,np.pi, n2))-0.5
-    d2 = np.random.rand(n2)*np.pi
-    x2 = 1-np.cos(d2)
-    y2 = 1-np.sin(d2)-0.5
-    
-    if noise is not None:
-        scale = noise[1] if type(noise) is tuple else noise
-        
-        x2 += np.random.normal(scale=scale, size=n2)
-        y2 += np.random.normal(scale=scale, size=n2)
-        
-        
-    X = np.vstack([np.append(x1, x2), np.append(y1, y2)]).T.astype(np.float32)
-    
-    y1=np.zeros(n1,dtype=np.intp)
-    y2=np.ones(n2,dtype=np.intp)
-    y = np.hstack([y1, y2]).astype(np.int32)
-    
-    l1=np.array([False]*n1)#np.zeros(n1,dtype=np.intp)
-    l2=np.array([False]*n2)#np.ones(n2,dtype=np.intp)
-    
-    if n_label is not None:
-        if type(n_label) is tuple:
-            l1[:n_label[0]]=True
-            l2[:n_label[1]]=True
-            #print(l1[n_label[0]:])
-        elif type(n_label) in [int,float]:
-            if n_label <1:
-                l1[:int(n1*n_label)]=True
-                l2[:int(n2*n_label)]=True
-            else:
-                l1[:n_label]=True
-                l2[:n_label]=True
-    m = np.concatenate([l1,l2])
-    #print(X.dtype, y.dtype)
-    return X,y,m
-    
 def twomoon(N, noise=0.1, ratio=1.0, n_label=None,seed=0):
     data,label = make_moons(N,shuffle=False,noise=noise,random_state=seed)
     data = (data - data.mean(0,keepdims=True))/data.std(0,keepdims=True)
@@ -338,8 +186,3 @@ def twomoon(N, noise=0.1, ratio=1.0, n_label=None,seed=0):
     m[l0_idx] = l1
     m[l1_idx] = l2
     return data, label, m
-if __name__ == '__main__':
-    X,y = dataset(1000, noise=(0.05,0.05), ratio=1, n_cluster=7,n_label=3)
-    print(X.shape, y.shape)
-    plt.scatter(X[:,0], X[:,1], c=y)
-    plt.show()
