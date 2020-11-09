@@ -9,5 +9,5 @@
 
 ## Install Required Modules
 ```
-install_dependencies.sh
+$ install_dependencies.sh
 ```
