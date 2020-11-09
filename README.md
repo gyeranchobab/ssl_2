@@ -8,4 +8,6 @@
 [Dataset description](https://csegroups.case.edu/bearingdatacenter/pages/welcome-case-western-reserve-university-bearing-data-center-website)
 
 ## Install Required Modules
-> install_dependencies.sh
+```
+install_dependencies.sh
+```
